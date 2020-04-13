@@ -76,6 +76,7 @@ private:
     RT_TASK th_openComRobot;
     RT_TASK th_startRobot;
     RT_TASK th_move;
+    RT_TASK th_batterie;
     
     /**********************************************************************/
     /* Mutex                                                              */
@@ -84,6 +85,7 @@ private:
     RT_MUTEX mutex_robot;
     RT_MUTEX mutex_robotStarted;
     RT_MUTEX mutex_move;
+    RT_MUTEX mutex_batterie;
 
     /**********************************************************************/
     /* Semaphores                                                         */
@@ -131,6 +133,11 @@ private:
      * @brief Thread handling control of the robot.
      */
     void MoveTask(void *arg);
+    
+    /**
+     * @brief Thread managing the batterie level
+     */
+    void BatterieTask(void *arg);
     
     /**********************************************************************/
     /* Queue services                                                     */
