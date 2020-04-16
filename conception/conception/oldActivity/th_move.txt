@@ -1,0 +1,18 @@
+@startuml
+
+title Thread th_move - Activity Diagram 
+
+
+start
+
+:start_period(100ms);
+while ()
+    :wait_next_period();
+    if (robotStarted) then (true)
+        :robot.Write(new Message(move));
+    endif
+
+endwhile 
+    stop
+
+@enduml

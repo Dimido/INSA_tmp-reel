@@ -1,0 +1,12 @@
+@startuml
+start
+:start_period(500 ms);
+while ()
+  :wait_next_period();
+    while(robotStarted) is (true)
+    :msg = robot.Write(new Message(BATTERY_GET));
+    :monitor.Write(msg);
+    endwhile
+endwhile (No)
+stop
+@enduml

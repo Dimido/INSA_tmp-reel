@@ -1,0 +1,17 @@
+@startuml
+
+title th_image
+
+
+start
+:start_period(100ms);
+while ()
+    :wait_next_period();
+    if (cameraStarted) then (true)
+        :img := camera.Grab();
+        :monitor.Write(new MessageImg(img));
+    endif
+endwhile 
+    stop
+
+@enduml

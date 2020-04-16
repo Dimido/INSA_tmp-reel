@@ -1,0 +1,8 @@
+@startuml
+start
+while ()
+  :messageToMon?msg;
+  :monitor.Write(msg);
+endwhile
+stop
+@enduml

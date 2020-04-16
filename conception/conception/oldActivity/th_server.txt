@@ -1,0 +1,19 @@
+@startuml
+
+title Conditional - Activity Diagram 
+
+
+start
+
+:status = monitor.Open(); 
+
+if (status) then (failed)
+  :monitor.AcceptClient();
+  :serverOk!;
+  stop
+else (succeed)
+  :print("Unable to start server");
+  stop
+endif
+
+@enduml

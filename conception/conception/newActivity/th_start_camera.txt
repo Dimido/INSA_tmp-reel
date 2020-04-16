@@ -1,0 +1,15 @@
+@startuml
+title th_start_camera\n
+start
+
+:status = Camera.Open();
+
+if(status) then (succeed)
+    :CameraOK!;
+    stop
+else (failed)
+    :sendToMon("open camera failed");
+    :print("Unable to open camera...");
+    stop
+
+@enduml

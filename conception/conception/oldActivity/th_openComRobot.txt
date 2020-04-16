@@ -1,0 +1,21 @@
+@startuml
+
+title Thread th_openComRobot - Activity Diagram 
+
+
+start
+
+while ()
+    :openComRobot?;
+    :err=robot.Open();
+    if (err) then (robot ok)
+        :msgSend = new Message(MESSAGE_ANSWER_NACK);
+    else
+        :msgSend = new Message(MESSAGE_ANSWER_ACK);
+
+    endif
+    :messageToMon!msgSend;
+endwhile 
+    stop
+
+@enduml
