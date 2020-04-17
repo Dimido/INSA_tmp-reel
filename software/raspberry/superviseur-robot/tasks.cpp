@@ -365,7 +365,7 @@ void Tasks::MoveTask(void *arg) {
     cout << "Start " << __PRETTY_FUNCTION__ << endl << flush;
     // Synchronization barrier (waiting that all tasks are starting)
     rt_sem_p(&sem_barrier, TM_INFINITE);
-    
+    Message* response;
     /**************************************************************************************/
     /* The task starts here                                                               */
     /**************************************************************************************/
@@ -385,13 +385,37 @@ void Tasks::MoveTask(void *arg) {
             cout << " move: " << cpMove;
             
             rt_mutex_acquire(&mutex_robot, TM_INFINITE);
-            robot.Write(new Message((MessageID)cpMove));
+            response=robot.Write(new Message((MessageID)cpMove));
             rt_mutex_release(&mutex_robot);
+            Manage_compteur(response);
         }
         cout << endl << flush;
     }
 }
 
+void Tasks::Manage_compteur(Message * msg){
+    rt_mutex_acquire(&mutex_compteur,TM_INFINITE);
+    if(msg->GetID()!=MESSAGE_ANSWER_ACK){
+        compteur++;
+        if(compteur>=3){
+            //Envoyer un message au moniteur pour lui signaler que la communication est perdue
+            //Fermer Com Sup Robot
+            //Reinit
+            cout << "Start " << "==========Communication lost ======" << endl << flush;
+            close_communication_robot();
+        }
+            
+    }
+    else
+        compteur=0; 
+    rt_mutex_release(&mutex_compteur);
+}
+void Tasks::close_communication_robot(){
+    Join();
+    Stop();
+    Init();
+    Run();
+}
 void Tasks::BatterieTask(void *arg) {
     cout << "Start " << __PRETTY_FUNCTION__ << endl << flush;
     //Synchronisation barrier (waiting that all tasks are starting)

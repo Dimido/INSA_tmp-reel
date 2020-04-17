@@ -85,7 +85,7 @@ private:
     RT_MUTEX mutex_robot;
     RT_MUTEX mutex_robotStarted;
     RT_MUTEX mutex_move;
-    RT_MUTEX mutex_batterie;
+    RT_MUTEX mutex_compteur;
 
     /**********************************************************************/
     /* Semaphores                                                         */
@@ -100,6 +100,7 @@ private:
     /**********************************************************************/
     int MSG_QUEUE_SIZE;
     RT_QUEUE q_messageToMon;
+    int compteur=0;
     
     /**********************************************************************/
     /* Tasks' functions                                                   */
@@ -155,7 +156,8 @@ private:
      * @return Message read
      */
     Message *ReadInQueue(RT_QUEUE *queue);
-
+    void Manage_compteur(Message * msg);
+    void close_communication_robot();
 };
 
 #endif // __TASKS_H__ 
