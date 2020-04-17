@@ -74,6 +74,10 @@ void Tasks::Init() {
         cerr << "Error mutex create: " << strerror(-err) << endl << flush;
         exit(EXIT_FAILURE);
     }
+    if (err = rt_mutex_create(&mutex_camera, NULL)) {
+        cerr << "Error mutex create: " << strerror(-err) << endl << flush;
+        exit(EXIT_FAILURE);
+    }
     cout << "Mutexes created successfully" << endl << flush;
 
     /**************************************************************************************/
@@ -269,6 +273,54 @@ void Tasks::ReceiveFromMonTask(void *arg) {
         cout << "Rcv <= " << msgRcv->ToString() << endl << flush;
 
         if (msgRcv->CompareID(MESSAGE_MONITOR_LOST)) {
+            
+            /*rt_mutex_acquire(&mutex_move, TM_INFINITE);
+            move = ComRobot.Stop()->GetID();
+            rt_mutex_release(&mutex_move);*/
+            
+            
+            rt_mutex_acquire(&mutex_robotStarted, TM_INFINITE);
+            int rs = robotStarted;
+            rt_mutex_release(&mutex_robotStarted);
+            
+            if(rs){
+
+                rt_mutex_acquire(&mutex_robot, TM_INFINITE);
+                robot.Write(ComRobot::Stop());
+                rt_mutex_release(&mutex_robot);
+                cout << "[STAGIAIRE] Could stop Robot." << endl;
+                
+                rt_mutex_acquire(&mutex_robot, TM_INFINITE);
+                int receive=robot.Close();
+                rt_mutex_release(&mutex_robot);
+                cout << "[STAGIAIRE] Could close RobotCom." << endl;
+                
+
+                if(receive >= 0){
+                    cout << "[STAGIAIRE] Could close robot." << endl;
+                    rt_mutex_acquire(&mutex_monitor, TM_INFINITE);
+                    monitor.Close();
+                    rt_mutex_release(&mutex_monitor);
+                    cout << "[STAGIAIRE] Could close MonitorCom." << endl;
+                        
+                    /* Il faut init camera
+                    rt_mutex_acquire(&mutex_camera, TM_INFINITE);
+                    camera = camera.Close();a
+                    rt_mutex_release(&mutex_camera);
+                    */                        
+                }else{
+                    cout << "[STAGIAIRE] Couldn't close robot." << endl;
+                }
+
+                 
+            }
+            
+            
+            
+            
+            
+            
+            
             delete(msgRcv);
             exit(-1);
         } else if (msgRcv->CompareID(MESSAGE_ROBOT_COM_OPEN)) {
@@ -407,6 +459,7 @@ void Tasks::BatterieTask(void *arg) {
         rt_mutex_acquire(&mutex_robotStarted, TM_INFINITE);
         rs = robotStarted;
         rt_mutex_release(&mutex_robotStarted);
+        
         if(rs){
             Message* receive;
             rt_mutex_acquire(&mutex_robot, TM_INFINITE);
