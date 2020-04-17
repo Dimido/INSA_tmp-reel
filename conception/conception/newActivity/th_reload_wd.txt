@@ -1,0 +1,18 @@
+@startuml
+start
+:start_period(100ms);
+:Superviseur.sendToRobot(DMB_RELOAD_WD);
+:resCode = ComSuperviseur.Write();
+if(resCode) then (error)
+    if(Compteur_8) then (Compteur_8=3)
+        :Superviseur.sendToMon("communication perdue");
+        stop
+    else(Compteur_8<3)
+        :Superviseur.incrementeCompteur_8;
+        stop
+    endif
+else(success)
+    :Superviseur.reinitialiseCompteur_8;
+    stop
+
+@enduml
