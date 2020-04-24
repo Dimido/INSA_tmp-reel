@@ -86,14 +86,10 @@ private:
     RT_MUTEX mutex_robot;
     RT_MUTEX mutex_robotStarted;
     RT_MUTEX mutex_move;
-<<<<<<< HEAD
     RT_MUTEX mutex_batterie;
     //Custom
     RT_MUTEX mutex_camera;
-=======
     RT_MUTEX mutex_compteur;
->>>>>>> c014f37a2b345c194e7ac0fd84538f3cc7e3a313
-
     /**********************************************************************/
     /* Semaphores                                                         */
     /**********************************************************************/
