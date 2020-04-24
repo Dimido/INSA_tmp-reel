@@ -66,7 +66,6 @@ private:
     ComRobot robot;
     int robotStarted = 0;
     int move = MESSAGE_ROBOT_STOP;
-    Camera camera;
     
     /**********************************************************************/
     /* Tasks                                                              */
@@ -78,6 +77,8 @@ private:
     RT_TASK th_startRobot;
     RT_TASK th_move;
     RT_TASK th_batterie;
+    RT_TASK th_startRobotWithWD;
+    RT_TASK th_realoadWD;
     
     /**********************************************************************/
     /* Mutex                                                              */
@@ -86,13 +87,7 @@ private:
     RT_MUTEX mutex_robot;
     RT_MUTEX mutex_robotStarted;
     RT_MUTEX mutex_move;
-<<<<<<< HEAD
-    RT_MUTEX mutex_batterie;
-    //Custom
-    RT_MUTEX mutex_camera;
-=======
     RT_MUTEX mutex_compteur;
->>>>>>> c014f37a2b345c194e7ac0fd84538f3cc7e3a313
 
     /**********************************************************************/
     /* Semaphores                                                         */
@@ -101,6 +96,8 @@ private:
     RT_SEM sem_openComRobot;
     RT_SEM sem_serverOk;
     RT_SEM sem_startRobot;
+    RT_SEM sem_startRobotWithWD;
+    RT_SEM sem_reloadWD;
 
     /**********************************************************************/
     /* Message queues                                                     */
@@ -136,6 +133,14 @@ private:
      * @brief Thread starting the communication with the robot.
      */
     void StartRobotTask(void *arg);
+    
+    /**
+     * @brief Thread starting the communication with the robot in watchdog mode 
+     */
+    void StartRobotWithWD_Task(void * arg);
+    
+    
+    void ReloadWD_Task(void * arg);
     
     /**
      * @brief Thread handling control of the robot.
