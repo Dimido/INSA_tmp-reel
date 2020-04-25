@@ -52,12 +52,12 @@ public:
      * @brief Stops tasks
      */
     void Stop();
-    
+
     /**
      * @brief Suspends main thread
      */
     void Join();
-    
+
 private:
     /**********************************************************************/
     /* Shared data                                                        */
@@ -67,7 +67,7 @@ private:
     int robotStarted = 0;
     int move = MESSAGE_ROBOT_STOP;
     Camera camera;
-    
+
     /**********************************************************************/
     /* Tasks                                                              */
     /**********************************************************************/
@@ -78,7 +78,9 @@ private:
     RT_TASK th_startRobot;
     RT_TASK th_move;
     RT_TASK th_batterie;
-    
+    RT_TASK th_startRobotWithWD;
+    RT_TASK th_realoadWD;
+
     /**********************************************************************/
     /* Mutex                                                              */
     /**********************************************************************/
@@ -90,6 +92,7 @@ private:
     //Custom
     RT_MUTEX mutex_camera;
     RT_MUTEX mutex_compteur;
+
     /**********************************************************************/
     /* Semaphores                                                         */
     /**********************************************************************/
@@ -97,6 +100,8 @@ private:
     RT_SEM sem_openComRobot;
     RT_SEM sem_serverOk;
     RT_SEM sem_startRobot;
+    RT_SEM sem_startRobotWithWD;
+    RT_SEM sem_reloadWD;
 
     /**********************************************************************/
     /* Message queues                                                     */
@@ -104,7 +109,7 @@ private:
     int MSG_QUEUE_SIZE;
     RT_QUEUE q_messageToMon;
     int compteur=0;
-    
+
     /**********************************************************************/
     /* Tasks' functions                                                   */
     /**********************************************************************/
@@ -112,17 +117,17 @@ private:
      * @brief Thread handling server communication with the monitor.
      */
     void ServerTask(void *arg);
-     
+
     /**
      * @brief Thread sending data to monitor.
      */
     void SendToMonTask(void *arg);
-        
+
     /**
      * @brief Thread receiving data from monitor.
      */
     void ReceiveFromMonTask(void *arg);
-    
+
     /**
      * @brief Thread opening communication with the robot.
      */
@@ -132,17 +137,25 @@ private:
      * @brief Thread starting the communication with the robot.
      */
     void StartRobotTask(void *arg);
-    
+
+    /**
+     * @brief Thread starting the communication with the robot in watchdog mode
+     */
+    void StartRobotWithWD_Task(void * arg);
+
+
+    void ReloadWD_Task(void * arg);
+
     /**
      * @brief Thread handling control of the robot.
      */
     void MoveTask(void *arg);
-    
+
     /**
      * @brief Thread managing the batterie level
      */
     void BatterieTask(void *arg);
-    
+
     /**********************************************************************/
     /* Queue services                                                     */
     /**********************************************************************/
@@ -152,7 +165,7 @@ private:
      * @param msg Message to be stored
      */
     void WriteInQueue(RT_QUEUE *queue, Message *msg);
-    
+
     /**
      * Read a message from a given queue, block if empty
      * @param queue Queue identifier
@@ -163,5 +176,4 @@ private:
     void close_communication_robot();
 };
 
-#endif // __TASKS_H__ 
-
+#endif // __TASKS_H__
