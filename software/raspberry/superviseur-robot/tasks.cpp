@@ -337,7 +337,8 @@ void Tasks::OpenComRobot(void *arg) {
         rt_sem_p(&sem_openComRobot, TM_INFINITE);
         cout << "Open serial com (";
         rt_mutex_acquire(&mutex_robot, TM_INFINITE);
-        status = robot.Open();
+        robot.Open();
+        //status = robot.Open("10.0.2.15",56172);
         rt_mutex_release(&mutex_robot);
         cout << status;
         cout << ")" << endl << flush;
@@ -501,7 +502,7 @@ void Tasks::Manage_compteur(Message * msg){
     }
 }
 void Tasks::close_communication_robot(){
-    //monitor.Write(new Message(MESSAGE_MONITOR_LOST));
+    monitor.Write(new Message(MESSAGE_MONITOR_LOST));
     rt_mutex_acquire(&mutex_robotStarted, TM_INFINITE);
     robotStarted=0;
     rt_mutex_release(&mutex_robotStarted);
@@ -530,7 +531,7 @@ void Tasks::BatterieTask(void *arg) {
             rt_mutex_acquire(&mutex_robot, TM_INFINITE);
             receive=robot.Write(new Message(MESSAGE_ROBOT_BATTERY_GET));
             rt_mutex_release(&mutex_robot);
-            Manage_compteur(receive);
+            //Manage_compteur(receive);
             if(receive ->GetID() == MESSAGE_ROBOT_BATTERY_LEVEL){
             cout << " batterie: " << receive->ToString();
             WriteInQueue(&q_messageToMon, receive);  // msgSend will be deleted by sendToMon

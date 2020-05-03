@@ -10,7 +10,7 @@
       <itemPath>./lib/comrobot.h</itemPath>
       <itemPath>./lib/img.h</itemPath>
       <itemPath>./lib/messages.h</itemPath>
-      <itemPath>lib/tasks.h</itemPath>
+      <itemPath>./tasks.h</itemPath>
     </logicalFolder>
     <logicalFolder name="ResourceFiles"
                    displayName="Resource Files"
@@ -27,7 +27,7 @@
       <itemPath>./lib/img.cpp</itemPath>
       <itemPath>./main.cpp</itemPath>
       <itemPath>./lib/messages.cpp</itemPath>
-      <itemPath>lib/tasks.cpp</itemPath>
+      <itemPath>./tasks.cpp</itemPath>
     </logicalFolder>
     <logicalFolder name="TestFiles"
                    displayName="Test Files"
@@ -110,9 +110,9 @@
       </item>
       <item path="./main.cpp" ex="false" tool="1" flavor2="0">
       </item>
-      <item path="lib/tasks.cpp" ex="false" tool="1" flavor2="0">
+      <item path="./tasks.cpp" ex="false" tool="1" flavor2="0">
       </item>
-      <item path="lib/tasks.h" ex="false" tool="3" flavor2="0">
+      <item path="./tasks.h" ex="false" tool="3" flavor2="0">
       </item>
     </conf>
   </confs>
