@@ -511,7 +511,7 @@ void Tasks::Manage_compteur(Message * msg){
             cout << "Start " << "==========Communication lost ======" << endl << flush;
             cout << "Start " << "==========Communication lost ======" << endl << flush;
             cout << "Start " << "==========Communication lost ======" << endl << flush;  
-            monitor.Write(new Message(MESSAGE_ANSWER_ACK));
+            monitor.Write(new Message(MESSAGE_ANSWER_NACK));
             rt_sem_v(&sem_restart);
             delete_by = 2;
             rt_task_delete(NULL);
