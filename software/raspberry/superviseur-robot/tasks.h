@@ -79,6 +79,7 @@ private:
     RT_TASK th_batterie;
     RT_TASK th_startRobotWithWD;
     RT_TASK th_realoadWD;
+    RT_TASK th_restart;
     
     /**********************************************************************/
     /* Mutex                                                              */
@@ -98,6 +99,7 @@ private:
     RT_SEM sem_startRobot;
     RT_SEM sem_startRobotWithWD;
     RT_SEM sem_reloadWD;
+    RT_SEM sem_restart;
 
     /**********************************************************************/
     /* Message queues                                                     */
@@ -105,6 +107,8 @@ private:
     int MSG_QUEUE_SIZE;
     RT_QUEUE q_messageToMon;
     int compteur=0;
+    int restart_created = 0; 
+    int delete_by = 0;
     
     /**********************************************************************/
     /* Tasks' functions                                                   */
@@ -170,6 +174,7 @@ private:
     Message *ReadInQueue(RT_QUEUE *queue);
     void Manage_compteur(Message * msg);
     void close_communication_robot();
+    void restart();
 };
 
 #endif // __TASKS_H__ 

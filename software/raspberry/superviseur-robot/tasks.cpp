@@ -107,6 +107,12 @@ void Tasks::Init() {
         cerr << "Error semaphore create: " << strerror(-err) << endl << flush;
         exit(EXIT_FAILURE);
     }
+    if(restart_created == 0){
+        if( err = rt_sem_create(&sem_restart, NULL, 0, S_FIFO)) {
+        cerr << "Error semaphore restart create: " << strerror(-err) << endl << flush;
+        exit(EXIT_FAILURE);
+        }
+    }
     cout << "Semaphores created successfully" << endl << flush;
 
     /**************************************************************************************/
@@ -148,11 +154,18 @@ void Tasks::Init() {
         cerr << "Error task create: " << strerror(-err) << endl << flush;
         exit(EXIT_FAILURE);
     }
+    if(restart_created == 0){
+        if ( err = rt_task_create(&th_restart, "th_restart", 0, 10, 0)) {
+        cerr << "Error task create restart: " << strerror(-err) << endl << flush;
+        exit(EXIT_FAILURE);
+        }
+    }
     cout << "Tasks created successfully" << endl << flush;
 
     /**************************************************************************************/
     /* Message queues creation                                                            */
     /**************************************************************************************/
+    
     if ((err = rt_queue_create(&q_messageToMon, "q_messageToMon", sizeof (Message*)*50, Q_UNLIMITED, Q_FIFO)) < 0) {
         cerr << "Error msg queue create: " << strerror(-err) << endl << flush;
         exit(EXIT_FAILURE);
@@ -203,6 +216,15 @@ void Tasks::Run() {
     if (err = rt_task_start(&th_realoadWD, (void(*)(void*)) & Tasks::ReloadWD_Task, this)) {
         cerr << "Error task start: " << strerror(-err) << endl << flush;
         exit(EXIT_FAILURE);
+    }
+    if(restart_created == 0){
+        if ( err = rt_task_start(&th_restart, (void(*)(void*)) & Tasks::restart, this)) {
+        cerr << "Error task restart: "  << strerror(-err) << endl << flush;
+        exit(EXIT_FAILURE);
+        }
+        else {
+        restart_created = 1;
+        }
     }
 
     cout << "Tasks launched" << endl << flush;
@@ -298,7 +320,9 @@ void Tasks::ReceiveFromMonTask(void *arg) {
 
         if (msgRcv->CompareID(MESSAGE_MONITOR_LOST)) {
             delete(msgRcv);
-            exit(-1);
+            rt_sem_v(&sem_restart);
+            delete_by = 1;
+            rt_task_delete(NULL);
         } else if (msgRcv->CompareID(MESSAGE_ROBOT_COM_OPEN)) {
             rt_sem_v(&sem_openComRobot);
         } else if (msgRcv->CompareID(MESSAGE_ROBOT_START_WITHOUT_WD)) {
@@ -423,7 +447,7 @@ void Tasks::ReloadWD_Task(void * arg){
     rt_task_set_periodic(NULL,TM_NOW,100000000);
   while (1) {
         rt_task_wait_period(NULL);
-        cout << "Periodic WD reload";
+        cout << "Periodic WD reload" << endl << flush;
         rt_mutex_acquire(&mutex_robotStarted, TM_INFINITE);
         rs = robotStarted;
         rt_mutex_release(&mutex_robotStarted);
@@ -431,8 +455,8 @@ void Tasks::ReloadWD_Task(void * arg){
             rt_mutex_acquire(&mutex_robot, TM_INFINITE);
             response=robot.Write(robot.ReloadWD());
             rt_mutex_release(&mutex_robot);
+            //Manage_compteur(response);
         }
-        cout << endl << flush;
     }
 }
 
@@ -475,12 +499,10 @@ void Tasks::MoveTask(void *arg) {
 }
 
 void Tasks::Manage_compteur(Message * msg){
+    rt_mutex_acquire(&mutex_compteur,TM_INFINITE);
     if(msg->GetID()!=MESSAGE_ANSWER_ACK){
-        rt_mutex_acquire(&mutex_compteur,TM_INFINITE);
         compteur++;
-        rt_mutex_release(&mutex_compteur);
-
-        if(compteur>=3){
+        if(compteur>=2){
             //Envoyer un message au moniteur pour lui signaler que la communication est perdue
             //Fermer Com Sup Robot
             //Reinit
@@ -488,28 +510,72 @@ void Tasks::Manage_compteur(Message * msg){
             cout << "Start " << "==========Communication lost ======" << endl << flush;
             cout << "Start " << "==========Communication lost ======" << endl << flush;
             cout << "Start " << "==========Communication lost ======" << endl << flush;
-            cout << "Start " << "==========Communication lost ======" << endl << flush;
-
-            close_communication_robot();
-        }
-            
+            cout << "Start " << "==========Communication lost ======" << endl << flush;  
+            monitor.Write(new Message(MESSAGE_ANSWER_ACK));
+            rt_sem_v(&sem_restart);
+            delete_by = 2;
+            rt_task_delete(NULL);
+        }    
     }
     else{
-        rt_mutex_acquire(&mutex_compteur,TM_INFINITE);
         compteur=0; 
-        rt_mutex_release(&mutex_compteur);
+    }
+    rt_mutex_release(&mutex_compteur);
+}
 
+void Tasks::restart(){
+    while(1){
+    rt_sem_p(&sem_restart,TM_INFINITE);    
+    close_communication_robot();
     }
 }
 void Tasks::close_communication_robot(){
-    monitor.Write(new Message(MESSAGE_MONITOR_LOST));
+    //monitor.Write(new Message(MESSAGE_MONITOR_LOST));
     rt_mutex_acquire(&mutex_robotStarted, TM_INFINITE);
     robotStarted=0;
     rt_mutex_release(&mutex_robotStarted);
-    Join();
-    Stop();
+    Stop();   
+        
+    cout << "delete th_reloadWD" << endl <<flush;
+    rt_task_delete(&th_realoadWD);
+    
+    cout << "delete th_batterie" << endl <<flush;
+    rt_task_delete(&th_batterie);
+    
+    cout << "delete th_server" << endl <<flush;
+    rt_task_delete(&th_server);
+    
+    cout << "delete th_sendToMon" << endl <<flush;
+    rt_task_delete(&th_sendToMon);
+    
+    if(delete_by != 1)
+    {
+       cout << "delete th_receiveFromMon" << endl <<flush;
+        rt_task_delete(&th_receiveFromMon);
+    }
+    
+    
+      if(delete_by != 2)
+    {
+        cout << "delete th_move" << endl <<flush;
+        rt_task_delete(&th_move);
+    }
+    
+    delete_by = 0;
+    
+    cout << "delete th_openComrobot" << endl <<flush;
+    rt_task_delete(&th_openComRobot);
+    
+    cout << "delete th_startRobot" << endl <<flush;
+    rt_task_delete(&th_startRobot);
+    
+    cout << "delete th_startRobotWithWD" << endl <<flush;
+    rt_task_delete(&th_startRobotWithWD);
+    
+    rt_queue_delete(&q_messageToMon);
     Init();
     Run();
+    rt_sem_broadcast(&sem_barrier);
 }
 void Tasks::BatterieTask(void *arg) {
     cout << "Start " << __PRETTY_FUNCTION__ << endl << flush;
