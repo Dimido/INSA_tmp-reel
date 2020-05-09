@@ -172,7 +172,7 @@ private:
      * @return Message read
      */
     Message *ReadInQueue(RT_QUEUE *queue);
-    void Manage_compteur(Message * msg);
+    void Manage_compteur(Message * msg,int closer);
     void close_communication_robot();
     void restart();
 };

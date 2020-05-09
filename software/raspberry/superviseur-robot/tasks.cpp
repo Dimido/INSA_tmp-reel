@@ -26,8 +26,16 @@
 #define PRIORITY_TRECEIVEFROMMON 25
 #define PRIORITY_TSTARTROBOT 20
 #define PRIORITY_TCAMERA 21
-#define PRIORITY_TBATTERIE 21
+#define PRIORITY_TBATTERIE 20
+#define PRIORITY_TRELOAD 20
+#define PRIORITY_TRESTART 20
+#define PRIORITY_TSTARTWITHOUTWD 20
 
+
+#define CLOSE_BY_BATTERIE 3
+#define CLOSE_BY_MOVE 2
+#define CLOSE_BY_RELOAD 1
+#define CLOSE_BY_MONITOR 4
 /*
  * Some remarks:
  * 1- This program is mostly a template. It shows you how to create tasks, semaphore
@@ -146,16 +154,16 @@ void Tasks::Init() {
         cerr << "Error task create: " << strerror(-err) << endl << flush;
         exit(EXIT_FAILURE);
     }
-    if (err = rt_task_create(&th_startRobotWithWD, "th_startRobotWithWD", 0, PRIORITY_TBATTERIE, 0)) {
+    if (err = rt_task_create(&th_startRobotWithWD, "th_startRobotWithWD", 0, PRIORITY_TSTARTWITHOUTWD, 0)) {
         cerr << "Error task create: " << strerror(-err) << endl << flush;
         exit(EXIT_FAILURE);
     }
-    if (err = rt_task_create(&th_realoadWD, "th_reloadWD", 0, PRIORITY_TBATTERIE, 0)) {
+    if (err = rt_task_create(&th_realoadWD, "th_reloadWD", 0, PRIORITY_TRELOAD, 0)) {
         cerr << "Error task create: " << strerror(-err) << endl << flush;
         exit(EXIT_FAILURE);
     }
     if(restart_created == 0){
-        if ( err = rt_task_create(&th_restart, "th_restart", 0, 10, 0)) {
+        if ( err = rt_task_create(&th_restart, "th_restart", PRIORITY_TRESTART, 10, 0)) {
         cerr << "Error task create restart: " << strerror(-err) << endl << flush;
         exit(EXIT_FAILURE);
         }
@@ -321,8 +329,10 @@ void Tasks::ReceiveFromMonTask(void *arg) {
         if (msgRcv->CompareID(MESSAGE_MONITOR_LOST)) {
             delete(msgRcv);
             rt_sem_v(&sem_restart);
-            delete_by = 1;
+            if(delete_by == 0){
+            delete_by = CLOSE_BY_MONITOR;
             rt_task_delete(NULL);
+            }
         } else if (msgRcv->CompareID(MESSAGE_ROBOT_COM_OPEN)) {
             rt_sem_v(&sem_openComRobot);
         } else if (msgRcv->CompareID(MESSAGE_ROBOT_START_WITHOUT_WD)) {
@@ -455,7 +465,7 @@ void Tasks::ReloadWD_Task(void * arg){
             rt_mutex_acquire(&mutex_robot, TM_INFINITE);
             response=robot.Write(robot.ReloadWD());
             rt_mutex_release(&mutex_robot);
-            //Manage_compteur(response);
+            //Manage_compteur(response,CLOSE_BY_RELOAD);
         }
     }
 }
@@ -492,20 +502,23 @@ void Tasks::MoveTask(void *arg) {
             rt_mutex_acquire(&mutex_robot, TM_INFINITE);
             response=robot.Write(new Message((MessageID)cpMove));
             rt_mutex_release(&mutex_robot);
-            Manage_compteur(response);
+            Manage_compteur(response,CLOSE_BY_MOVE);
         }
         cout << endl << flush;
     }
 }
 
-void Tasks::Manage_compteur(Message * msg){
+void Tasks::Manage_compteur(Message * msg, int closer){
     rt_mutex_acquire(&mutex_compteur,TM_INFINITE);
     if(msg->GetID()!=MESSAGE_ANSWER_ACK){
         compteur++;
-        if(compteur>=2){
+        if(compteur>3 && delete_by==0){
             //Envoyer un message au moniteur pour lui signaler que la communication est perdue
             //Fermer Com Sup Robot
             //Reinit
+            rt_mutex_acquire(&mutex_robotStarted, TM_INFINITE);
+            robotStarted=0;
+            rt_mutex_release(&mutex_robotStarted);
             cout << "Start " << "==========Communication lost ======" << endl << flush;
             cout << "Start " << "==========Communication lost ======" << endl << flush;
             cout << "Start " << "==========Communication lost ======" << endl << flush;
@@ -513,13 +526,14 @@ void Tasks::Manage_compteur(Message * msg){
             cout << "Start " << "==========Communication lost ======" << endl << flush;  
             monitor.Write(new Message(MESSAGE_ANSWER_NACK));
             rt_sem_v(&sem_restart);
-            delete_by = 2;
+            delete_by = closer;
             rt_task_delete(NULL);
-        }    
+        }
     }
     else{
         compteur=0; 
     }
+    cout << "Start " << "====>>>>> " << compteur << endl << flush;
     rt_mutex_release(&mutex_compteur);
 }
 
@@ -531,16 +545,22 @@ void Tasks::restart(){
 }
 void Tasks::close_communication_robot(){
     //monitor.Write(new Message(MESSAGE_MONITOR_LOST));
-    rt_mutex_acquire(&mutex_robotStarted, TM_INFINITE);
-    robotStarted=0;
-    rt_mutex_release(&mutex_robotStarted);
     Stop();   
-        
-    cout << "delete th_reloadWD" << endl <<flush;
-    rt_task_delete(&th_realoadWD);
-    
-    cout << "delete th_batterie" << endl <<flush;
-    rt_task_delete(&th_batterie);
+    if(delete_by != CLOSE_BY_RELOAD)
+    {
+        cout << "delete th_reloadWD" << endl <<flush;
+        rt_task_delete(&th_realoadWD);
+    }
+        if(delete_by != CLOSE_BY_MOVE)
+    {
+        cout << "delete th_move" << endl <<flush;
+        rt_task_delete(&th_move);
+    }
+    if(delete_by != CLOSE_BY_BATTERIE)
+    {
+        cout << "delete th_batterie" << endl <<flush;
+        rt_task_delete(&th_batterie);
+    }
     
     cout << "delete th_server" << endl <<flush;
     rt_task_delete(&th_server);
@@ -548,20 +568,12 @@ void Tasks::close_communication_robot(){
     cout << "delete th_sendToMon" << endl <<flush;
     rt_task_delete(&th_sendToMon);
     
-    if(delete_by != 1)
+    if(delete_by != CLOSE_BY_MONITOR)
     {
        cout << "delete th_receiveFromMon" << endl <<flush;
         rt_task_delete(&th_receiveFromMon);
     }
-    
-    
-      if(delete_by != 2)
-    {
-        cout << "delete th_move" << endl <<flush;
-        rt_task_delete(&th_move);
-    }
-    
-    delete_by = 0;
+
     
     cout << "delete th_openComrobot" << endl <<flush;
     rt_task_delete(&th_openComRobot);
@@ -573,6 +585,8 @@ void Tasks::close_communication_robot(){
     rt_task_delete(&th_startRobotWithWD);
     
     rt_queue_delete(&q_messageToMon);
+    delete_by = 0;
+    compteur = 0;
     Init();
     Run();
     rt_sem_broadcast(&sem_barrier);
@@ -597,7 +611,7 @@ void Tasks::BatterieTask(void *arg) {
             rt_mutex_acquire(&mutex_robot, TM_INFINITE);
             receive=robot.Write(new Message(MESSAGE_ROBOT_BATTERY_GET));
             rt_mutex_release(&mutex_robot);
-            //Manage_compteur(receive);
+            Manage_compteur(receive,CLOSE_BY_BATTERIE);
             if(receive ->GetID() == MESSAGE_ROBOT_BATTERY_LEVEL){
             cout << " batterie: " << receive->ToString();
             WriteInQueue(&q_messageToMon, receive);  // msgSend will be deleted by sendToMon
