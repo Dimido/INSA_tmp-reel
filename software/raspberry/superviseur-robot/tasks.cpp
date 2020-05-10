@@ -27,8 +27,8 @@
 #define PRIORITY_TSTARTROBOT 20
 #define PRIORITY_TCAMERA 21
 #define PRIORITY_TBATTERIE 20
-#define PRIORITY_TRELOAD 20
-#define PRIORITY_TRESTART 20
+#define PRIORITY_TRELOAD 19
+#define PRIORITY_TRESTART 18
 #define PRIORITY_TSTARTWITHOUTWD 20
 
 
@@ -465,7 +465,7 @@ void Tasks::ReloadWD_Task(void * arg){
             rt_mutex_acquire(&mutex_robot, TM_INFINITE);
             response=robot.Write(robot.ReloadWD());
             rt_mutex_release(&mutex_robot);
-            //Manage_compteur(response,CLOSE_BY_RELOAD);
+            Manage_compteur(response,CLOSE_BY_RELOAD);
         }
     }
 }
@@ -516,15 +516,13 @@ void Tasks::Manage_compteur(Message * msg, int closer){
             //Envoyer un message au moniteur pour lui signaler que la communication est perdue
             //Fermer Com Sup Robot
             //Reinit
-            rt_mutex_acquire(&mutex_robotStarted, TM_INFINITE);
-            robotStarted=0;
-            rt_mutex_release(&mutex_robotStarted);
             cout << "Start " << "==========Communication lost ======" << endl << flush;
             cout << "Start " << "==========Communication lost ======" << endl << flush;
             cout << "Start " << "==========Communication lost ======" << endl << flush;
             cout << "Start " << "==========Communication lost ======" << endl << flush;
             cout << "Start " << "==========Communication lost ======" << endl << flush;  
             monitor.Write(new Message(MESSAGE_ANSWER_NACK));
+            cout  << endl << flush; 
             rt_sem_v(&sem_restart);
             delete_by = closer;
             rt_task_delete(NULL);
@@ -545,16 +543,13 @@ void Tasks::restart(){
 }
 void Tasks::close_communication_robot(){
     //monitor.Write(new Message(MESSAGE_MONITOR_LOST));
-    Stop();   
+    rt_mutex_acquire(&mutex_robotStarted, TM_INFINITE);
+        robotStarted=0;
+    rt_mutex_release(&mutex_robotStarted);  
     if(delete_by != CLOSE_BY_RELOAD)
     {
         cout << "delete th_reloadWD" << endl <<flush;
         rt_task_delete(&th_realoadWD);
-    }
-        if(delete_by != CLOSE_BY_MOVE)
-    {
-        cout << "delete th_move" << endl <<flush;
-        rt_task_delete(&th_move);
     }
     if(delete_by != CLOSE_BY_BATTERIE)
     {
@@ -573,7 +568,12 @@ void Tasks::close_communication_robot(){
        cout << "delete th_receiveFromMon" << endl <<flush;
         rt_task_delete(&th_receiveFromMon);
     }
-
+    
+    if(delete_by != CLOSE_BY_MOVE)
+    {
+        cout << "delete th_move" << endl <<flush;
+        rt_task_delete(&th_move);
+    }
     
     cout << "delete th_openComrobot" << endl <<flush;
     rt_task_delete(&th_openComRobot);
@@ -584,12 +584,16 @@ void Tasks::close_communication_robot(){
     cout << "delete th_startRobotWithWD" << endl <<flush;
     rt_task_delete(&th_startRobotWithWD);
     
+    Stop(); 
+    
     rt_queue_delete(&q_messageToMon);
+    
     delete_by = 0;
     compteur = 0;
     Init();
     Run();
     rt_sem_broadcast(&sem_barrier);
+    rt_mutex_release(&mutex_compteur);
 }
 void Tasks::BatterieTask(void *arg) {
     cout << "Start " << __PRETTY_FUNCTION__ << endl << flush;
