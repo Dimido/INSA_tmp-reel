@@ -516,15 +516,14 @@ void Tasks::Manage_compteur(Message * msg, int closer){
             //Envoyer un message au moniteur pour lui signaler que la communication est perdue
             //Fermer Com Sup Robot
             //Reinit
+            delete_by = closer;
+            monitor.Write(new Message(MESSAGE_ANSWER_COM_ERROR));
             cout << "Start " << "==========Communication lost ======" << endl << flush;
             cout << "Start " << "==========Communication lost ======" << endl << flush;
             cout << "Start " << "==========Communication lost ======" << endl << flush;
             cout << "Start " << "==========Communication lost ======" << endl << flush;
             cout << "Start " << "==========Communication lost ======" << endl << flush;  
-            monitor.Write(new Message(MESSAGE_ANSWER_NACK));
-            cout  << endl << flush; 
             rt_sem_v(&sem_restart);
-            delete_by = closer;
             rt_task_delete(NULL);
         }
     }
@@ -542,20 +541,9 @@ void Tasks::restart(){
     }
 }
 void Tasks::close_communication_robot(){
-    //monitor.Write(new Message(MESSAGE_MONITOR_LOST));
     rt_mutex_acquire(&mutex_robotStarted, TM_INFINITE);
         robotStarted=0;
     rt_mutex_release(&mutex_robotStarted);  
-    if(delete_by != CLOSE_BY_RELOAD)
-    {
-        cout << "delete th_reloadWD" << endl <<flush;
-        rt_task_delete(&th_realoadWD);
-    }
-    if(delete_by != CLOSE_BY_BATTERIE)
-    {
-        cout << "delete th_batterie" << endl <<flush;
-        rt_task_delete(&th_batterie);
-    }
     
     cout << "delete th_server" << endl <<flush;
     rt_task_delete(&th_server);
@@ -569,12 +557,6 @@ void Tasks::close_communication_robot(){
         rt_task_delete(&th_receiveFromMon);
     }
     
-    if(delete_by != CLOSE_BY_MOVE)
-    {
-        cout << "delete th_move" << endl <<flush;
-        rt_task_delete(&th_move);
-    }
-    
     cout << "delete th_openComrobot" << endl <<flush;
     rt_task_delete(&th_openComRobot);
     
@@ -583,6 +565,24 @@ void Tasks::close_communication_robot(){
     
     cout << "delete th_startRobotWithWD" << endl <<flush;
     rt_task_delete(&th_startRobotWithWD);
+    
+    if(delete_by != CLOSE_BY_BATTERIE)
+    {
+        cout << "delete th_batterie" << endl <<flush;
+        rt_task_delete(&th_batterie);
+    }
+    
+    if(delete_by != CLOSE_BY_MOVE)
+    {
+        cout << "delete th_move" << endl <<flush;
+        rt_task_delete(&th_move);
+    }
+    
+       if(delete_by != CLOSE_BY_RELOAD)
+    {
+        cout << "delete th_reloadWD" << endl <<flush;
+        rt_task_delete(&th_realoadWD);
+    }
     
     Stop(); 
     
